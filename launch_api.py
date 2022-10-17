@@ -5,6 +5,7 @@ import os
 import sys
 import importlib.util
 import shlex
+import platform
 
 dir_repos = "repositories"
 dir_tmp = "tmp"
@@ -17,6 +18,8 @@ commandline_args = os.environ.get('COMMANDLINE_ARGS', "")
 
 k_diffusion_package = os.environ.get('K_DIFFUSION_PACKAGE', "git+https://github.com/crowsonkb/k-diffusion.git@1a0703dfb7d24d8806267c3e7ccc4caf67fd1331")
 gfpgan_package = os.environ.get('GFPGAN_PACKAGE', "git+https://github.com/TencentARC/GFPGAN.git@8d2447a2d918f8eba5a4a01463fd48e45126a379")
+
+xformers_windows_package = os.environ.get('XFORMERS_WINDOWS_PACKAGE', 'https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/download/f/xformers-0.0.14.dev0-cp310-cp310-win_amd64.whl')
 
 stable_diffusion_commit_hash = os.environ.get('STABLE_DIFFUSION_COMMIT_HASH', "69ae4b35e0a0f6ee1af8bb9a5d0016ccb27e36dc")
 taming_transformers_commit_hash = os.environ.get('TAMING_TRANSFORMERS_COMMIT_HASH', "24268930bf1dce879235a7fddd0b2355b84d7ea6")
@@ -32,7 +35,8 @@ def extract_arg(args, name):
 
 
 args, skip_torch_cuda_test = extract_arg(args, '--skip-torch-cuda-test')
-
+args, reinstall_xformers = extract_arg(args, '--reinstall-xformers')
+xformers = '--xformers' in args
 
 def repo_dir(name):
     return os.path.join(dir_repos, name)
@@ -115,6 +119,12 @@ if not is_installed("k_diffusion.sampling"):
 
 if not is_installed("gfpgan"):
     run_pip(f"install {gfpgan_package}", "gfpgan")
+
+if (not is_installed("xformers") or reinstall_xformers) and xformers and platform.python_version().startswith("3.10"):
+    if platform.system() == "Windows":
+        run_pip(f"install -U -I --no-deps {xformers_windows_package}", "xformers")
+    elif platform.system() == "Linux":
+        run_pip("install xformers", "xformers")
 
 os.makedirs(dir_repos, exist_ok=True)
 
